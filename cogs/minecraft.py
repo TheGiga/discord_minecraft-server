@@ -12,7 +12,7 @@ from discord.ext.commands import cooldown, BucketType
 
 from src import docker_client, SubclassedBot, utils
 
-versions = {'1.19.3', '1.16.5', '1.12.2', '1.8.9', '1.7.10'}
+versions = {'1.19.3', '1.18.2', '1.17.1', '1.16.5', '1.15.2', '1.14.4', '1.13.2', '1.12.2', '1.8.9', '1.7.10'}
 types = {'VANILLA', 'SPIGOT', 'PAPER'}
 dimensions = {'world', 'world_nether', 'world_the_end'}
 
@@ -26,13 +26,13 @@ class Minecraft(discord.Cog):
 
     async def shutdown_logic(self):
         await asyncio.sleep(10)
-        self.running = False
-        self.container = None
-        self.console_channel = None
-
         self.container.stop()
         docker_client.containers.prune()
         docker_client.volumes.prune()
+
+        self.container = None
+        self.console_channel = None
+        self.running = False
 
     @discord.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -77,6 +77,7 @@ class Minecraft(discord.Cog):
 
         await ctx.send_followup(f'**Result:** http://{os.getenv("IP")}:6969/{directory}/')
 
+    # TODO: Should be refactored.
     @cooldown(1, 60, BucketType.default)
     @discord.slash_command(name='upload_world')
     async def upload_world(
@@ -118,7 +119,7 @@ class Minecraft(discord.Cog):
                 async with aiofiles.open(archive_path, 'wb') as file:
                     await file.write(await response.read())
                     await file.close()
-                    await message_response.edit(content="✅ Download complete, unpacking")
+                    await message_response.edit(content="ℹ Download complete, unpacking...")
 
         temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/Temp'.replace("\\", "/")
         temp_dir = utils.ensure_directory_exists(temp_dir)
@@ -133,16 +134,21 @@ class Minecraft(discord.Cog):
                 shutil.rmtree(f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}')
             shutil.move(f'{temp_dir}/{world_name}', f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}')
 
+        worlds_uploaded = 0
+
         if is_world_in_archive:
             delete_and_move("world")
+            worlds_uploaded += 1
 
         if is_world_nether_in_archive:
             delete_and_move("world_nether")
+            worlds_uploaded += 1
 
         if is_world_the_end_in_archive:
             delete_and_move("world_the_end")
+            worlds_uploaded += 1
 
-        await message_response.edit(content="✅ Unpacking complete!")
+        await message_response.edit(content=f"✅ Unpacking complete! World(s) uploaded: `{worlds_uploaded}`")
 
         shutil.rmtree(temp_dir)
         os.remove(archive_path)

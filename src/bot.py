@@ -113,6 +113,7 @@ class SubclassedBot(discord.Bot, ABC):
             return
 
         else:
+            await ctx.send(content=f"❌ Error! `{error}`")
             raise error
 
     @staticmethod
