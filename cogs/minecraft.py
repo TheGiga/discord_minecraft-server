@@ -22,7 +22,6 @@ class Minecraft(discord.Cog):
 
     async def shutdown_logic(self):
         await asyncio.sleep(10)
-        print('aaa')
         self.container.stop()
         docker_client.containers.prune()
         docker_client.volumes.prune()
@@ -74,8 +73,9 @@ class Minecraft(discord.Cog):
 
         await ctx.send_followup(f'**Result:** http://{os.getenv("IP")}:6969/{directory}/')
 
-    @discord.slash_command(name='force-stop')
+    @discord.slash_command(name='force-stop', description='Data can be lost!')
     async def force_stop(self, ctx: discord.ApplicationContext):
+        await ctx.defer()
         await self.shutdown_logic()
         await ctx.respond("✅ Force-stopped the server.")
 
@@ -108,6 +108,7 @@ class Minecraft(discord.Cog):
             volumes=[f"{os.getenv('HOME')}/Docker/Minecraft/{version}:/data"],
             detach=True
         )
+
         self.running = True
         self.container = container
         self.console_channel = ctx.channel.id
