@@ -46,7 +46,7 @@ class Minecraft(discord.Cog):
             self.console_channel = None
 
     @cooldown(1, 60, BucketType.user)
-    @discord.slash_command(name='save_world')
+    @discord.slash_command(name='extract_world')
     async def save_world(
             self, ctx: discord.ApplicationContext,
             version: discord.Option(str, choices=versions),
