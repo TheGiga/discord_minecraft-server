@@ -20,6 +20,17 @@ class Minecraft(discord.Cog):
         self.container = None
         self.console_channel = None
 
+    async def shutdown_logic(self):
+        await asyncio.sleep(10)
+        print('aaa')
+        self.container.stop()
+        docker_client.containers.prune()
+        docker_client.volumes.prune()
+
+        self.running = False
+        self.container = None
+        self.console_channel = None
+
     @discord.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.channel.id != self.console_channel:
@@ -36,14 +47,7 @@ class Minecraft(discord.Cog):
         await message.reply(f'Response: `{pretty_response if len(pretty_response) > 0 else "✅"}`')
 
         if cmd == "stop":
-            await asyncio.sleep(10)
-            self.container.stop()
-            docker_client.containers.prune()
-            docker_client.volumes.prune()
-
-            self.running = False
-            self.container = None
-            self.console_channel = None
+            await self.shutdown_logic()
 
     @cooldown(1, 60, BucketType.user)
     @discord.slash_command(name='extract_world')
@@ -69,6 +73,11 @@ class Minecraft(discord.Cog):
             make_archive(end_path, 'zip', start_path)
 
         await ctx.send_followup(f'**Result:** http://{os.getenv("IP")}:6969/{directory}/')
+
+    @discord.slash_command(name='force-stop')
+    async def force_stop(self, ctx: discord.ApplicationContext):
+        await self.shutdown_logic()
+        await ctx.respond("✅ Force-stopped the server.")
 
     @discord.slash_command(name='start')
     async def start_server(
