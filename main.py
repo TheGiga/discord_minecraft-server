@@ -44,7 +44,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     finally:
-        print("🛑 Shutting Down")
+        print("🛑 Shutting Down, wait till everything cleans up.")
         event_loop.run_until_complete(bot_instance.close())
         for container in docker_client.containers.list():
             container.stop()
@@ -54,3 +54,4 @@ if __name__ == "__main__":
         docker_client.volumes.prune()
         # event_loop.run_until_complete(connections.close_all(discard=True))
         event_loop.stop()
+        print("✅ Done!")

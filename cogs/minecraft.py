@@ -12,7 +12,7 @@ from discord.ext.commands import cooldown, BucketType
 
 from src import docker_client, SubclassedBot, utils
 
-versions = {'1.19.2', '1.16.5', '1.12.2', '1.8.9', '1.7.10'}
+versions = {'1.19.3', '1.16.5', '1.12.2', '1.8.9', '1.7.10'}
 types = {'VANILLA', 'SPIGOT', 'PAPER'}
 dimensions = {'world', 'world_nether', 'world_the_end'}
 
@@ -147,8 +147,9 @@ class Minecraft(discord.Cog):
         shutil.rmtree(temp_dir)
         os.remove(archive_path)
 
-    @discord.slash_command(name='force-stop')
+    @discord.slash_command(name='force-stop', description='Data can be lost!')
     async def force_stop(self, ctx: discord.ApplicationContext):
+        await ctx.defer()
         await self.shutdown_logic()
         await ctx.respond("✅ Force-stopped the server.")
 
@@ -181,6 +182,7 @@ class Minecraft(discord.Cog):
             volumes=[f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}:/data"],
             detach=True
         )
+
         self.running = True
         self.container = container
         self.console_channel = ctx.channel.id
