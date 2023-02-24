@@ -120,7 +120,7 @@ class Minecraft(discord.Cog):
                     await file.close()
                     await message_response.edit(content="✅ Download complete, unpacking")
 
-        temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/temp'.replace("\\", "/")
+        temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/Temp'.replace("\\", "/")
         temp_dir = utils.ensure_directory_exists(temp_dir)
 
         shutil.unpack_archive(archive_path, temp_dir)
