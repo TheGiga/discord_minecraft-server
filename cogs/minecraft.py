@@ -1,16 +1,20 @@
 import asyncio
 import datetime
 import os
+import shutil
 import uuid
 from shutil import make_archive
 
+import aiofiles
+import aiohttp
 import discord
 from discord.ext.commands import cooldown, BucketType
 
-from src import docker_client, SubclassedBot
+from src import docker_client, SubclassedBot, utils
 
-versions = {'1.19.3', '1.16.5', '1.12.2', '1.8.9', '1.7.10'}
+versions = {'1.19.2', '1.16.5', '1.12.2', '1.8.9', '1.7.10'}
 types = {'VANILLA', 'SPIGOT', 'PAPER'}
+dimensions = {'world', 'world_nether', 'world_the_end'}
 
 
 class Minecraft(discord.Cog):
@@ -22,14 +26,13 @@ class Minecraft(discord.Cog):
 
     async def shutdown_logic(self):
         await asyncio.sleep(10)
-        print('aaa')
-        self.container.stop()
-        docker_client.containers.prune()
-        docker_client.volumes.prune()
-
         self.running = False
         self.container = None
         self.console_channel = None
+
+        self.container.stop()
+        docker_client.containers.prune()
+        docker_client.volumes.prune()
 
     @discord.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -56,14 +59,14 @@ class Minecraft(discord.Cog):
             version: discord.Option(str, choices=versions),
     ):
         if self.running:
-            return await ctx.respond('❌ Server is already running, cannot extract world(s), stop it.', ephemeral=True)
+            return await ctx.respond("❌ Couldn't extract world(s), server is running.", ephemeral=True)
 
         await ctx.respond('Working on it...')
 
         directory = f'{uuid.uuid4()}'
 
-        for world in ['world', 'world_nether', 'world_the_end']:
-            start_path = f"{os.getenv('HOME')}/Docker/Minecraft/{version}/{world}"
+        for world in dimensions:
+            start_path = f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world}"
             end_path = f'{self.bot.config.HTTP_SERVER_PATH}/{directory}/{world}'
 
             if not os.path.exists(start_path):
@@ -73,6 +76,76 @@ class Minecraft(discord.Cog):
             make_archive(end_path, 'zip', start_path)
 
         await ctx.send_followup(f'**Result:** http://{os.getenv("IP")}:6969/{directory}/')
+
+    @cooldown(1, 60, BucketType.default)
+    @discord.slash_command(name='upload_world')
+    async def upload_world(
+            self, ctx: discord.ApplicationContext,
+            url: discord.Option(str),
+            version: discord.Option(str, choices=versions),
+    ):
+        if self.running:
+            return await ctx.respond("❌ Couldn't upload world, server is running.", ephemeral=True)
+
+        archive_types: list = [".zip", ".bz2", ".gz"]
+        archive_name = uuid.uuid4()
+        archive_type_index: int = -1
+
+        for archive_type in archive_types:
+            if url.endswith(archive_type):
+                archive_type_index = archive_types.index(archive_type)
+                break
+
+        if archive_type_index == -1:
+            return await ctx.respond(
+                f'❌ Unsupported archive type. Supported archive types: {", ".join(archive_types)}',
+                ephemeral=True
+            )
+
+        await ctx.defer()
+
+        archive_path = f'{utils.ensure_directory_exists(f"{os.getcwd()}/temp")}/' \
+                       f'{archive_name}{archive_types[archive_type_index]}'.replace("\\", "/")
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    return await ctx.respond(
+                        f'❌ Got {response.status}, make sure you provide a valid url.', ephemeral=True
+                    )
+
+                message_response = await ctx.send_followup("🚀 Downloading file")
+                async with aiofiles.open(archive_path, 'wb') as file:
+                    await file.write(await response.read())
+                    await file.close()
+                    await message_response.edit(content="✅ Download complete, unpacking")
+
+        temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/temp'.replace("\\", "/")
+        temp_dir = utils.ensure_directory_exists(temp_dir)
+
+        shutil.unpack_archive(archive_path, temp_dir)
+        is_world_in_archive = os.path.exists(f'{temp_dir}/world')
+        is_world_nether_in_archive = os.path.exists(f'{temp_dir}/world_nether')
+        is_world_the_end_in_archive = os.path.exists(f'{temp_dir}/world_the_end')
+
+        def delete_and_move(world_name):
+            if os.path.exists(f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}'):
+                shutil.rmtree(f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}')
+            shutil.move(f'{temp_dir}/{world_name}', f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}')
+
+        if is_world_in_archive:
+            delete_and_move("world")
+
+        if is_world_nether_in_archive:
+            delete_and_move("world_nether")
+
+        if is_world_the_end_in_archive:
+            delete_and_move("world_the_end")
+
+        await message_response.edit(content="✅ Unpacking complete!")
+
+        shutil.rmtree(temp_dir)
+        os.remove(archive_path)
 
     @discord.slash_command(name='force-stop')
     async def force_stop(self, ctx: discord.ApplicationContext):
@@ -94,7 +167,7 @@ class Minecraft(discord.Cog):
 
         if regenerate:
             docker_client.volumes.prune()
-            print(os.system(f"rm -rf /{os.getenv('HOME')}/Docker/Minecraft/{version}/"))
+            print(os.system(f"rm -rf {self.bot.config.DOCKER_VOLUME_PATH}/{version}/"))
 
         container = docker_client.containers.run(
             image='itzg/minecraft-server',
@@ -105,7 +178,7 @@ class Minecraft(discord.Cog):
                 f"TYPE={server_type}"
             ],
             ports={'25565/tcp': (f'{os.getenv("IP")}', '25565')},
-            volumes=[f"{os.getenv('HOME')}/Docker/Minecraft/{version}:/data"],
+            volumes=[f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}:/data"],
             detach=True
         )
         self.running = True
