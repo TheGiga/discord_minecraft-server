@@ -47,12 +47,12 @@ class Minecraft(discord.Cog):
 
     @cooldown(1, 60, BucketType.user)
     @discord.slash_command(name='extract_world')
-    async def save_world(
+    async def extract_world(
             self, ctx: discord.ApplicationContext,
             version: discord.Option(str, choices=versions),
     ):
         if self.running:
-            return await ctx.respond('❌ Server is already running, cannot download world(s), stop it.', ephemeral=True)
+            return await ctx.respond('❌ Server is already running, cannot extract world(s), stop it.', ephemeral=True)
 
         await ctx.respond('Working on it...')
 
