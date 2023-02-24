@@ -1,2 +1,2 @@
-# discord-minecraft_server_manager
+# Minecraft Server Manager in Discord yeah
 will add readme when never
