@@ -136,8 +136,8 @@ class Minecraft(discord.Cog):
                 shutil.rmtree(world_path)
             shutil.move(f'{temp_dir}/{world_name}', world_path)
             if platform.system() == "Linux":
-                os.system(f"chown 1000:1000 {world_path}")
-                os.system(f"chown 1000:1000 {world_path}/*")
+                os.system(f"chmod 777 {world_path}")
+                os.system(f"chmod 777 {world_path}/*")
 
         worlds_uploaded = 0
 
