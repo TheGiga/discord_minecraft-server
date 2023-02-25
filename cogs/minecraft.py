@@ -44,6 +44,10 @@ class Minecraft(discord.Cog):
             return
 
         cmd = message.content.strip("$ ")
+
+        cmd.replace('"', '\"')
+        cmd.replace("'", "\'")
+
         print(f'$ {cmd} - {message.author} [{message.author.id}]')
         response = self.container.exec_run(['mc-send-to-console', f'{cmd}'])
 
