@@ -50,7 +50,7 @@ class Minecraft(discord.Cog):
         cmd = cmd.replace("'", "\\'")
 
         print(f'$ {cmd} - {message.author} [{message.author.id}]')
-        response = self.container.exec_run(["bash", '-c', f'echo "{cmd}" > /tmp/minecraft-console-in'])
+        response = self.container.exec_run(["bash", '-c', f'{cmd}']) # echo "{cmd}" > /tmp/minecraft-console-in
 
         print(response)
 
