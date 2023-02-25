@@ -13,7 +13,7 @@ from discord.ext.commands import cooldown, BucketType
 
 from src import docker_client, SubclassedBot, utils
 
-versions = {'1.19.2', '1.18.2', '1.17.1', '1.16.5', '1.15.2', '1.14.4', '1.13.2', '1.12.2', '1.8.9', '1.7.10'}
+versions = {'1.19.3', '1.19.2', '1.18.2', '1.17.1', '1.16.5', '1.15.2', '1.14.4', '1.13.2', '1.12.2', '1.8.9', '1.7.10'}
 types = {'VANILLA', 'SPIGOT', 'PAPER'}
 dimensions = {'world', 'world_nether', 'world_the_end'}
 
