@@ -120,7 +120,7 @@ class Minecraft(discord.Cog):
                 async with aiofiles.open(archive_path, 'wb') as file:
                     await file.write(await response.read())
                     await file.close()
-                    await message_response.edit(content="ℹ :skDownload complete, unpacking...")
+                    await message_response.edit(content="ℹ Download complete, unpacking...")
 
         temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/Temp'.replace("\\", "/")
         temp_dir = utils.ensure_directory_exists(temp_dir)
