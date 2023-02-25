@@ -45,8 +45,8 @@ class Minecraft(discord.Cog):
 
         cmd = message.content.strip("$ ")
 
-        cmd.replace('"', '\"')
-        cmd.replace("'", "\'")
+        cmd.replace('"', '\\"')
+        cmd.replace("'", "\\'")
 
         print(cmd)
 
