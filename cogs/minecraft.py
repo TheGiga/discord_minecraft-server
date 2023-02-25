@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import platform
 import shutil
 import uuid
 from shutil import make_archive
@@ -119,7 +120,7 @@ class Minecraft(discord.Cog):
                 async with aiofiles.open(archive_path, 'wb') as file:
                     await file.write(await response.read())
                     await file.close()
-                    await message_response.edit(content="ℹ Download complete, unpacking...")
+                    await message_response.edit(content="ℹ :skDownload complete, unpacking...")
 
         temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/Temp'.replace("\\", "/")
         temp_dir = utils.ensure_directory_exists(temp_dir)
@@ -130,9 +131,12 @@ class Minecraft(discord.Cog):
         is_world_the_end_in_archive = os.path.exists(f'{temp_dir}/world_the_end')
 
         def delete_and_move(world_name):
-            if os.path.exists(f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}'):
-                shutil.rmtree(f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}')
-            shutil.move(f'{temp_dir}/{world_name}', f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}')
+            world_path = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}'
+            if os.path.exists(world_path):
+                shutil.rmtree(world_path)
+            shutil.move(f'{temp_dir}/{world_name}', world_path)
+            if platform.system() == "Linux":
+                os.system(f"chmod +rwx {world_path}/*")
 
         worlds_uploaded = 0
 
