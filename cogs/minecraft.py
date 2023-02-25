@@ -13,7 +13,7 @@ from discord.ext.commands import cooldown, BucketType
 
 from src import docker_client, SubclassedBot, utils
 
-versions = {'1.19.3', '1.18.2', '1.17.1', '1.16.5', '1.15.2', '1.14.4', '1.13.2', '1.12.2', '1.8.9', '1.7.10'}
+versions = {'1.19.2', '1.18.2', '1.17.1', '1.16.5', '1.15.2', '1.14.4', '1.13.2', '1.12.2', '1.8.9', '1.7.10'}
 types = {'VANILLA', 'SPIGOT', 'PAPER'}
 dimensions = {'world', 'world_nether', 'world_the_end'}
 
@@ -37,21 +37,22 @@ class Minecraft(discord.Cog):
 
     @discord.Cog.listener()
     async def on_message(self, message: discord.Message):
+        config = self.bot.config
+
         if message.channel.id != self.console_channel:
             return
 
-        if not message.content.startswith("$") or message.author.id not in self.bot.config.WHITELIST:
+        if not message.content.startswith(config.CONSOLE_PREFIX) or message.author.id not in config.WHITELIST:
             return
 
-        cmd = message.content.strip("$ ")
-
-        cmd.replace('"', '\\"')
-        cmd.replace("'", "\\'")
-
-        print(cmd)
+        cmd = message.content[len(config.CONSOLE_PREFIX):].strip()
+        cmd = cmd.replace('"', '\\"')
+        cmd = cmd.replace("'", "\\'")
 
         print(f'$ {cmd} - {message.author} [{message.author.id}]')
-        response = self.container.exec_run(['mc-send-to-console', f'{cmd}'])
+        response = self.container.exec_run(["bash", '-c', f'echo "{cmd}" > /tmp/minecraft-console-in'])
+
+        print(response)
 
         pretty_response = response.output.decode("utf-8")
         await message.reply(f'Response: `{pretty_response if len(pretty_response) > 0 else "✅"}`')
@@ -65,6 +66,8 @@ class Minecraft(discord.Cog):
             self, ctx: discord.ApplicationContext,
             version: discord.Option(str, choices=versions),
     ):
+        config = self.bot.config
+
         if self.running:
             return await ctx.respond("❌ Couldn't extract world(s), server is running.", ephemeral=True)
 
@@ -73,8 +76,8 @@ class Minecraft(discord.Cog):
         directory = f'{uuid.uuid4()}'
 
         for world in dimensions:
-            start_path = f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world}"
-            end_path = f'{self.bot.config.HTTP_SERVER_PATH}/{directory}/{world}'
+            start_path = f"{config.DOCKER_VOLUME_PATH}/{version}/{world}"
+            end_path = f'{config.HTTP_SERVER_PATH}/{directory}/{world}'
 
             if not os.path.exists(start_path):
                 await ctx.channel.send(f"❌ There is no `{world}` on this version.")
@@ -92,11 +95,12 @@ class Minecraft(discord.Cog):
             url: discord.Option(str),
             version: discord.Option(str, choices=versions),
     ):
+        config = self.bot.config
+
         if self.running:
             return await ctx.respond("❌ Couldn't upload world, server is running.", ephemeral=True)
 
         archive_types: list = [".zip", ".bz2", ".gz"]
-        archive_name = uuid.uuid4()
         archive_type_index: int = -1
 
         for archive_type in archive_types:
@@ -111,9 +115,8 @@ class Minecraft(discord.Cog):
             )
 
         await ctx.defer()
-
-        archive_path = f'{utils.ensure_directory_exists(f"{os.getcwd()}/temp")}/' \
-                       f'{archive_name}{archive_types[archive_type_index]}'.replace("\\", "/")
+        archive_name = f'{uuid.uuid4()}{archive_types[archive_type_index]}'
+        archive_path = f'{utils.ensure_directory_exists(f"{os.getcwd()}/temp")}/{archive_name}'.replace("\\", "/")
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -128,7 +131,7 @@ class Minecraft(discord.Cog):
                     await file.close()
                     await message_response.edit(content="ℹ Download complete, unpacking...")
 
-        temp_dir = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/Temp'.replace("\\", "/")
+        temp_dir = f'{config.DOCKER_VOLUME_PATH}/{version}/Temp'.replace("\\", "/")
         temp_dir = utils.ensure_directory_exists(temp_dir)
 
         shutil.unpack_archive(archive_path, temp_dir)
@@ -137,7 +140,7 @@ class Minecraft(discord.Cog):
         is_world_the_end_in_archive = os.path.exists(f'{temp_dir}/world_the_end')
 
         def delete_and_move(world_name):
-            world_path = f'{self.bot.config.DOCKER_VOLUME_PATH}/{version}/{world_name}'
+            world_path = f'{config.DOCKER_VOLUME_PATH}/{version}/{world_name}'
             if os.path.exists(world_path):
                 shutil.rmtree(world_path)
             shutil.move(f'{temp_dir}/{world_name}', world_path)
