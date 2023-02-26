@@ -11,11 +11,8 @@ import aiohttp
 import discord
 from discord.ext.commands import cooldown, BucketType
 
+import config
 from src import docker_client, SubclassedBot, utils
-
-versions = {'1.19.3', '1.19.2', '1.18.2', '1.17.1', '1.16.5', '1.15.2', '1.14.4', '1.13.2', '1.12.2', '1.8.9', '1.7.10'}
-types = {'VANILLA', 'SPIGOT', 'PAPER'}
-dimensions = {'world', 'world_nether', 'world_the_end'}
 
 
 class Minecraft(discord.Cog):
@@ -37,17 +34,14 @@ class Minecraft(discord.Cog):
 
     @discord.Cog.listener()
     async def on_message(self, message: discord.Message):
-        config = self.bot.config
-
         if message.channel.id != self.console_channel:
             return
 
         if not message.content.startswith(config.CONSOLE_PREFIX) or message.author.id not in config.WHITELIST:
             return
 
-        cmd = message.content[len(config.CONSOLE_PREFIX):].strip()
-        cmd = cmd.replace('"', '\\"')
-        cmd = cmd.replace("'", "\\'")
+        cmd = message.content.removeprefix(config.CONSOLE_PREFIX).strip()
+        cmd = cmd.translate(cmd.maketrans(config.ESCAPED_CHARACTERS))
 
         print(f'$ {cmd} - {message.author} [{message.author.id}]')
         response = self.container.exec_run(["mc-send-to-console", f"{cmd}"])
@@ -64,10 +58,8 @@ class Minecraft(discord.Cog):
     @discord.slash_command(name='extract_world')
     async def extract_world(
             self, ctx: discord.ApplicationContext,
-            version: discord.Option(str, choices=versions),
+            version: discord.Option(str, choices=config.VERSIONS),
     ):
-        config = self.bot.config
-
         if self.running:
             return await ctx.respond("❌ Couldn't extract world(s), server is running.", ephemeral=True)
 
@@ -75,7 +67,7 @@ class Minecraft(discord.Cog):
 
         directory = f'{uuid.uuid4()}'
 
-        for world in dimensions:
+        for world in config.DIMENSIONS:
             start_path = f"{config.DOCKER_VOLUME_PATH}/{version}/{world}"
             end_path = f'{config.HTTP_SERVER_PATH}/{directory}/{world}'
 
@@ -93,10 +85,8 @@ class Minecraft(discord.Cog):
     async def upload_world(
             self, ctx: discord.ApplicationContext,
             url: discord.Option(str),
-            version: discord.Option(str, choices=versions),
+            version: discord.Option(str, choices=config.VERSIONS),
     ):
-        config = self.bot.config
-
         if self.running:
             return await ctx.respond("❌ Couldn't upload world, server is running.", ephemeral=True)
 
@@ -135,9 +125,9 @@ class Minecraft(discord.Cog):
         temp_dir = utils.ensure_directory_exists(temp_dir)
 
         shutil.unpack_archive(archive_path, temp_dir)
-        is_world_in_archive = os.path.exists(f'{temp_dir}/world')
-        is_world_nether_in_archive = os.path.exists(f'{temp_dir}/world_nether')
-        is_world_the_end_in_archive = os.path.exists(f'{temp_dir}/world_the_end')
+        is_world_in_unpacked = os.path.exists(f'{temp_dir}/world')
+        is_world_nether_unpacked = os.path.exists(f'{temp_dir}/world_nether')
+        is_world_the_end_unpacked = os.path.exists(f'{temp_dir}/world_the_end')
 
         def delete_and_move(world_name):
             world_path = f'{config.DOCKER_VOLUME_PATH}/{version}/{world_name}'
@@ -149,15 +139,15 @@ class Minecraft(discord.Cog):
 
         worlds_uploaded = 0
 
-        if is_world_in_archive:
+        if is_world_in_unpacked:
             delete_and_move("world")
             worlds_uploaded += 1
 
-        if is_world_nether_in_archive:
+        if is_world_nether_unpacked:
             delete_and_move("world_nether")
             worlds_uploaded += 1
 
-        if is_world_the_end_in_archive:
+        if is_world_the_end_unpacked:
             delete_and_move("world_the_end")
             worlds_uploaded += 1
 
@@ -175,8 +165,8 @@ class Minecraft(discord.Cog):
     @discord.slash_command(name='start')
     async def start_server(
             self, ctx: discord.ApplicationContext,
-            version: discord.Option(str, choices=versions),
-            server_type: discord.Option(str, name='type', choices=types),
+            version: discord.Option(str, choices=config.VERSIONS),
+            server_type: discord.Option(str, name='type', choices=config.SERVER_TYPES),
             regenerate: discord.Option(bool, default=False) = False
 
     ):
