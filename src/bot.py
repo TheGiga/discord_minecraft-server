@@ -90,8 +90,8 @@ class SubclassedBot(discord.Bot, ABC):
             self, ctx: discord.ApplicationContext, error: discord.ApplicationCommandError
     ):
         if isinstance(error, MissingPermissions):
-            embed = discord.Embed(colour=discord.Colour.red(), title='⚠ Заборонено!')
-            embed.description = f"❌ Вам не дозволено виконання цієї команди!"
+            embed = discord.Embed(colour=discord.Colour.red(), title='⚠ Blocked!')
+            embed.description = f"❌ You can't run this command!"
             await ctx.respond(embed=embed, ephemeral=True)
             return
 
@@ -101,14 +101,14 @@ class SubclassedBot(discord.Bot, ABC):
                               datetime.timedelta(seconds=error.cooldown.get_retry_after())
 
             return await ctx.respond(
-                content=f'❌ На эту команду действует кулдаун, попробуйте еще раз '
+                content=f'❌ This command is on cooldown, try again '
                         f'<t:{calendar.timegm(retry_at.timetuple())}:R>',
                 ephemeral=True
             )
 
         elif isinstance(error, CheckFailure):
-            embed = discord.Embed(colour=discord.Colour.red(), title='⚠ Заборонено!')
-            embed.description = f"❌ Помилка перевірки!"
+            embed = discord.Embed(colour=discord.Colour.red(), title='⚠ Blocked!')
+            embed.description = f"❌ Check error!"
             await ctx.respond(embed=embed, ephemeral=True)
             return
 

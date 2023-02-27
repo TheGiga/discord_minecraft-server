@@ -9,10 +9,16 @@ from shutil import make_archive
 import aiofiles
 import aiohttp
 import discord
+from discord import SlashCommandGroup
 from discord.ext.commands import cooldown, BucketType
 
 import config
-from src import docker_client, SubclassedBot, utils
+from src import docker_client, SubclassedBot, utils, Versions
+
+versions = [
+    discord.OptionChoice(x.value.name, x.name)
+    for x in config.VERSIONS
+]
 
 
 class Minecraft(discord.Cog):
@@ -21,6 +27,8 @@ class Minecraft(discord.Cog):
         self.running = False
         self.container = None
         self.console_channel = None
+
+    world = SlashCommandGroup(name='world', description="Command to work with server world(s)")
 
     async def shutdown_logic(self):
         await asyncio.sleep(10)
@@ -46,8 +54,6 @@ class Minecraft(discord.Cog):
         print(f'$ {cmd} - {message.author} [{message.author.id}]')
         response = self.container.exec_run(["mc-send-to-console", f"{cmd}"])
 
-        print(response)
-
         pretty_response = response.output.decode("utf-8")
         await message.reply(f'Response: `{pretty_response if len(pretty_response) > 0 else "✅"}`')
 
@@ -55,15 +61,17 @@ class Minecraft(discord.Cog):
             await self.shutdown_logic()
 
     @cooldown(1, 60, BucketType.user)
-    @discord.slash_command(name='extract_world')
+    @world.command(name='extract')
     async def extract_world(
             self, ctx: discord.ApplicationContext,
-            version: discord.Option(str, choices=config.VERSIONS),
+            version_enum_name: discord.Option(str, name='version', choices=versions),
     ):
         if self.running:
             return await ctx.respond("❌ Couldn't extract world(s), server is running.", ephemeral=True)
 
         await ctx.respond('Working on it...')
+
+        version = Versions[version_enum_name].value.name
 
         directory = f'{uuid.uuid4()}'
 
@@ -81,14 +89,16 @@ class Minecraft(discord.Cog):
 
     # TODO: Should be refactored.
     @cooldown(1, 60, BucketType.default)
-    @discord.slash_command(name='upload_world')
+    @world.command(name='upload')
     async def upload_world(
             self, ctx: discord.ApplicationContext,
             url: discord.Option(str),
-            version: discord.Option(str, choices=config.VERSIONS),
+            version_enum_name: discord.Option(str, name='version', choices=versions),
     ):
         if self.running:
             return await ctx.respond("❌ Couldn't upload world, server is running.", ephemeral=True)
+
+        version = Versions[version_enum_name].value.name
 
         archive_types: list = [".zip", ".bz2", ".gz"]
         archive_type_index: int = -1
@@ -162,33 +172,77 @@ class Minecraft(discord.Cog):
         await self.shutdown_logic()
         await ctx.respond("✅ Force-stopped the server.")
 
-    @discord.slash_command(name='start')
+    @discord.slash_command(name='start', description='Start minecraft server. (Only one at a time)')
     async def start_server(
             self, ctx: discord.ApplicationContext,
-            version: discord.Option(str, choices=config.VERSIONS),
+            version_enum_name: discord.Option(str, name='version', choices=versions),
             server_type: discord.Option(str, name='type', choices=config.SERVER_TYPES),
-            regenerate: discord.Option(bool, default=False) = False
+            memory: discord.Option(
+                int, default=1024,
+                description='🔢 In megabytes. (1024 by default, 75% will be used)'
+            ),
+
+            pvp: discord.Option(bool, default=True, description="Enables PVP on server (True)"),
+            gamemode: discord.Option(
+                str, choices=['survival', 'adventure', 'creative', 'spectator'], default="survival",
+                description="Default player gamemode (Survival)"
+            ),
+            view_distance: discord.Option(
+                int, min_value=2, max_value=64, default=10, description="Maximum view distance (10)"
+            ),
+            spawn_protection: discord.Option(int, min_value=0, default=16, description="Spawn Protection (16)"),
+            hardcore: discord.Option(bool, default=False, description="Hardcore Mode (False)"),
+            enable_command_blocks: discord.Option(bool, default=True, description="Command Blocks (True)"),
+            max_players: discord.Option(
+                int, default=20, description="Maximum concurrent player count (20)", min_value=1
+            ),
+            difficulty: discord.Option(
+                str, choices=['peaceful', 'easy', 'normal', 'hard'], default='easy',
+                description="In-game difficulty (Easy)"
+            ),
+            motd: discord.Option(
+                str, default='Minecraft server running with discord bot :)', description="Server MOTD"
+            ),
+
+            regenerate: discord.Option(bool, default=False, description='❌ All server data will be deleted!')
 
     ):
         if self.running:
             return await ctx.respond('❌ Already running!', ephemeral=True)
 
-        await ctx.defer()
+        version = Versions[version_enum_name].value.name
+        java_version = Versions[version_enum_name].value.flag.java_version
+
+        initial_response = await ctx.respond('☑ Starting...')
 
         if regenerate:
+            await initial_response.edit_original_response(content="ℹ Regenerating...")
             docker_client.volumes.prune()
             print(os.system(f"rm -rf {self.bot.config.DOCKER_VOLUME_PATH}/{version}/"))
 
         container = docker_client.containers.run(
-            image='itzg/minecraft-server',
+            image=f'itzg/minecraft-server:{java_version}',
             name=version,
             environment=[
                 "EULA=TRUE",
                 f"VERSION={version}",
-                f"TYPE={server_type}"
+                f"TYPE={server_type}",
+                f'MEMORY={memory}M',
+                f'PVP={str(pvp).lower()}',
+                f'MODE={gamemode}',
+                f'VIEW_DISTANCE={view_distance}',
+                f'SPAWN_PROTECTION={spawn_protection}',
+                f'HARDCORE={hardcore}',
+                f'ENABLE_COMMAND_BLOCK={str(enable_command_blocks).lower()}',
+                f'MAX_PLAYERS={max_players}',
+                f'DIFFICULTY={difficulty}',
+                f'MOTD={motd}',
+                f'JVM_XX_OPTS = "-XX:MaxRAMPercentage=75"'
+
             ],
-            ports={'25565/tcp': (f'{os.getenv("IP")}', '25565')},
+            ports={'25565/tcp': (config.IP, config.PORT)},
             volumes=[f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}:/data"],
+            mem_limit=f'{memory}m',
             detach=True
         )
 
@@ -198,8 +252,11 @@ class Minecraft(discord.Cog):
 
         last_check = None
 
-        initial_response = await ctx.respond('✅ **Running...**')
+        initial_response = await initial_response.edit_original_response(
+            content=f'✅ **Running...** (Type in `{config.CONSOLE_PREFIX}<command>` to send commands to console)'
+        )
 
+        # It's a very rough implementation that, should be improved somehow.
         while self.running:
             logs = container.logs(since=last_check).decode('utf-8')
             last_check = datetime.datetime.utcnow()
@@ -207,11 +264,11 @@ class Minecraft(discord.Cog):
             if len(logs) > 0:
                 print(logs)
                 try:
-                    await initial_response.channel.send(f'```bash\n{logs}```')
+                    await initial_response.channel.send(f'```md\n{logs}```')
                 except discord.HTTPException:
-                    await initial_response.channel.send(f'``` * Some weird ass long log. *```')
+                    await initial_response.channel.send(f'``` * This log cannot be displayed on Discord *```')
 
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(1.8)
 
 
 def setup(bot):
