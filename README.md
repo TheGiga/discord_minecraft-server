@@ -21,6 +21,7 @@ You need an HTTP server *(python http.server, or any other to your desire, bot j
 You can set up one by running:
 - `python -m http.server <port>` in your directory. 
 > Default port is 6969, It should be open if you want to access it outside of local network.
+
 > Default directory is `/home/$USER/Public` (Linux) or `C:/Users/$USER/Public` (Windows). 
 
 
