@@ -2,7 +2,7 @@
 Discord bot that lets you run dockerized minecraft servers.
 *NOTE: You must host it yourself, for now at least.*
 
-It is using (itzg/docker-minecraft-server)[https://github.com/itzg/docker-minecraft-server].
+It is using [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server).
 
 # You can:
 - [x] Configure server properties (inside of `/start` command)
