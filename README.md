@@ -15,6 +15,10 @@ It is using [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecr
 - [ ] Upload plugins
 - [ ] Make `/start` templates.
 
+## Configurable
+You can configure most of the stuff, just change variables in `config.py` file to your desired ones.
+There is more info on what's what in the file.
+
 ### HTTP Server
 You need an HTTP server *(python http.server, or any other to your desire, bot just puts `.zip` files to specific path)* to download world(s) from server, because discord sucks and can't give enough file size for bigger wordls.
 
@@ -24,7 +28,7 @@ You can set up one by running:
 
 > Default directory is `/home/$USER/Public` (Linux) or `C:/Users/$USER/Public` (Windows). 
 
+### Report any errors!
+Make an Issue on GitHub if you are having trouble setting up/running bot.
 
-## Configurable
-You can configure most of the stuff, just change variables in `config.py` file to your desired ones.
-There is more info on what's what in the file.
+(Bot was tested on 3 machines, 2 PC's and a Contabo server)
