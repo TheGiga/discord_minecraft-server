@@ -16,7 +16,7 @@ It is using [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecr
 - [ ] Make `/start` templates.
 
 ### HTTP Server
-You need an HTTP server (python http.server) to download world(s) from server, because discord sucks and can't give enough file size for bigger wordls.
+You need an HTTP server (python http.server, or any other to your desire, bot just puts .zip file to specific paths) to download world(s) from server, because discord sucks and can't give enough file size for bigger wordls.
 
 You can set up one by running:
 - `python -m http.server <port>`. Default port is 6969. It should be open if you want to access it outside of local network.
