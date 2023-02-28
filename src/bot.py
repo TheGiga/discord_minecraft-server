@@ -75,7 +75,6 @@ class SubclassedBot(discord.Bot, ABC):
                 group_commands.remove(subgroup)
 
             # At this point, all non discord.SlashCommand entries should be removed
-            print(group_commands)
             for group_command in group_commands:
                 description += f"{group_command.mention} » {group_command.description}\n"
 
