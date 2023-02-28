@@ -1,14 +1,12 @@
 import os
 import asyncio
-
 import requests
 import discord
 from dotenv import load_dotenv
 
-import config
-
 load_dotenv()
 
+import config
 from src import bot_instance, docker_client
 
 

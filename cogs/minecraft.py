@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import os
 import platform
 import shutil
@@ -13,7 +12,7 @@ from discord import SlashCommandGroup
 from discord.ext.commands import cooldown, BucketType
 
 import config
-from src import docker_client, SubclassedBot, utils, Versions
+from src import docker_client, SubclassedBot, utils, Versions, async_wrap_iter
 
 versions = [
     discord.OptionChoice(x.value.name, x.name)
@@ -178,10 +177,8 @@ class Minecraft(discord.Cog):
             version_enum_name: discord.Option(str, name='version', choices=versions),
             server_type: discord.Option(str, name='type', choices=config.SERVER_TYPES),
             memory: discord.Option(
-                int, default=1024,
-                description='🔢 In megabytes. (1024 by default, 75% will be used)'
+                int, default=1024, description='🔢 In megabytes. (1024 by default, 90% will be used)'
             ),
-
             pvp: discord.Option(bool, default=True, description="Enables PVP on server (True)"),
             gamemode: discord.Option(
                 str, choices=['survival', 'adventure', 'creative', 'spectator'], default="survival",
@@ -203,16 +200,14 @@ class Minecraft(discord.Cog):
             motd: discord.Option(
                 str, default='Minecraft server running with discord bot :)', description="Server MOTD"
             ),
-
             regenerate: discord.Option(bool, default=False, description='❌ All server data will be deleted!')
-
     ):
         if self.running:
             return await ctx.respond('❌ Already running!', ephemeral=True)
 
         version = Versions[version_enum_name].value.name
         java_version = Versions[version_enum_name].value.flag.java_version
-        memory = round(memory * 0.75)
+        memory = round(memory * 0.90)
 
         initial_response = await ctx.respond('☑ Starting...')
 
@@ -250,25 +245,25 @@ class Minecraft(discord.Cog):
         self.container = container
         self.console_channel = ctx.channel.id
 
-        last_check = None
-
         initial_response = await initial_response.edit_original_response(
             content=f'✅ **Running...** (Type in `{config.CONSOLE_PREFIX}<command>` to send commands to console)'
         )
 
-        # It's a very rough implementation that, should be improved somehow.
-        while self.running:
-            logs = container.logs(since=last_check).decode('utf-8')
-            last_check = datetime.datetime.utcnow()
+        log_generator = async_wrap_iter(container.logs(stream=True))
 
-            if len(logs) > 0:
-                print(logs)
-                try:
-                    await initial_response.channel.send(f'```md\n{logs}```')
-                except discord.HTTPException:
-                    await initial_response.channel.send(f'``` * This log cannot be displayed on Discord *```')
+        async for log in log_generator:
+            log = log.decode('utf-8').rstrip("\n")
 
-            await asyncio.sleep(1.8)
+            print(fr'{log}')
+
+            # TODO: Make a log queue for Discord.
+
+            try:
+                await initial_response.channel.send(f'```md\n{log}```')
+            except discord.HTTPException:
+                await initial_response.channel.send(f'``` * This log cannot be displayed on Discord *```')
+
+            await asyncio.sleep(0.25)  # Slightly defers next log
 
 
 def setup(bot):
