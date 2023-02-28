@@ -31,7 +31,7 @@ There is more info on what's what in the file.
 
 
 ### HTTP Server
-You need an HTTP server *(python http.server, or any other to your desire, bot just puts `.zip` files to specific path)* to download world(s) from server, because discord sucks and can't give enough file size for bigger wordls.
+You need an HTTP server *(python http.server, or any other to your desire, bot just puts `.zip` files to specific path)* to download world(s) from server, because discord sucks and can't give enough file size limit for bigger wordls.
 
 You can set up one by running:
 - `python -m http.server <port>` in your directory. 
