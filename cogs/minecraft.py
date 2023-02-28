@@ -28,7 +28,7 @@ class Minecraft(discord.Cog):
         self.container = None
         self.console_channel = None
 
-    world = SlashCommandGroup(name='world', description="Command to work with server world(s)")
+    world = SlashCommandGroup(name='world', description="Commands to work with server world(s)")
 
     async def shutdown_logic(self):
         await asyncio.sleep(10)
@@ -61,13 +61,13 @@ class Minecraft(discord.Cog):
             await self.shutdown_logic()
 
     @cooldown(1, 60, BucketType.user)
-    @world.command(name='extract')
-    async def extract_world(
+    @world.command(name='download', description='Download server world(s).')
+    async def download_world(
             self, ctx: discord.ApplicationContext,
             version_enum_name: discord.Option(str, name='version', choices=versions),
     ):
         if self.running:
-            return await ctx.respond("❌ Couldn't extract world(s), server is running.", ephemeral=True)
+            return await ctx.respond("❌ Couldn't download world(s), server is running.", ephemeral=True)
 
         await ctx.respond('Working on it...')
 
@@ -89,7 +89,7 @@ class Minecraft(discord.Cog):
 
     # TODO: Should be refactored.
     @cooldown(1, 60, BucketType.default)
-    @world.command(name='upload')
+    @world.command(name='upload', description='Upload world(s) to specific server version (it will replace old one!)')
     async def upload_world(
             self, ctx: discord.ApplicationContext,
             url: discord.Option(str),
@@ -166,13 +166,13 @@ class Minecraft(discord.Cog):
         shutil.rmtree(temp_dir)
         os.remove(archive_path)
 
-    @discord.slash_command(name='force-stop', description='Data can be lost!')
+    @discord.slash_command(name='force-stop', description='Force stop the server. (❌ Data can be lost!)')
     async def force_stop(self, ctx: discord.ApplicationContext):
         await ctx.defer()
         await self.shutdown_logic()
         await ctx.respond("✅ Force-stopped the server.")
 
-    @discord.slash_command(name='start', description='Start minecraft server. (Only one at a time)')
+    @discord.slash_command(name='start', description='Start minecraft server. (Only one at the time)')
     async def start_server(
             self, ctx: discord.ApplicationContext,
             version_enum_name: discord.Option(str, name='version', choices=versions),
