@@ -51,7 +51,7 @@ class Minecraft(discord.Cog):
         cmd = message.content.removeprefix(config.CONSOLE_PREFIX).strip()
         cmd = cmd.translate(cmd.maketrans(config.ESCAPED_CHARACTERS))
 
-        print(f'$ {cmd} - {message.author} [{message.author.id}]')
+        print(f'{config.CONSOLE_PREFIX} {cmd} - {message.author} [{message.author.id}]')
         response = self.container.exec_run(["mc-send-to-console", f"{cmd}"])
 
         pretty_response = response.output.decode("utf-8")
@@ -212,6 +212,7 @@ class Minecraft(discord.Cog):
 
         version = Versions[version_enum_name].value.name
         java_version = Versions[version_enum_name].value.flag.java_version
+        memory = round(memory * 0.75)
 
         initial_response = await ctx.respond('☑ Starting...')
 
@@ -237,7 +238,6 @@ class Minecraft(discord.Cog):
                 f'MAX_PLAYERS={max_players}',
                 f'DIFFICULTY={difficulty}',
                 f'MOTD={motd}',
-                f'JVM_XX_OPTS = "-XX:MaxRAMPercentage=75"'
 
             ],
             ports={'25565/tcp': (config.IP, config.PORT)},
