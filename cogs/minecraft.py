@@ -177,7 +177,8 @@ class Minecraft(discord.Cog):
             version_enum_name: discord.Option(str, name='version', choices=versions),
             server_type: discord.Option(str, name='type', choices=config.SERVER_TYPES),
             memory: discord.Option(
-                int, default=1024, description='🔢 In megabytes. (1024 by default, 90% will be used)'
+                int, default=1024, description='🔢 In megabytes. '
+                                               '(1024 by default, 75% will be used, 25% reserved by Docker)'
             ),
             pvp: discord.Option(bool, default=True, description="Enables PVP on server (True)"),
             gamemode: discord.Option(
@@ -207,7 +208,7 @@ class Minecraft(discord.Cog):
 
         version = Versions[version_enum_name].value.name
         java_version = Versions[version_enum_name].value.flag.java_version
-        memory = round(memory * 0.90)
+        memory = round(memory * 0.75)
 
         initial_response = await ctx.respond('☑ Starting...')
 
