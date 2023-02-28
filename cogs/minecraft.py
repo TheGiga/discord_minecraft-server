@@ -208,7 +208,7 @@ class Minecraft(discord.Cog):
 
         version = Versions[version_enum_name].value.name
         java_version = Versions[version_enum_name].value.flag.java_version
-        memory = round(memory * 0.75)
+        java_memory = round(memory * 0.75)
 
         initial_response = await ctx.respond('☑ Starting...')
 
@@ -221,10 +221,10 @@ class Minecraft(discord.Cog):
             image=f'itzg/minecraft-server:{java_version}',
             name=version,
             environment=[
-                "EULA=TRUE",
+                "EULA=true",
                 f"VERSION={version}",
                 f"TYPE={server_type}",
-                f'MEMORY={memory}M',
+                f'MEMORY={java_memory}M',
                 f'PVP={str(pvp).lower()}',
                 f'MODE={gamemode}',
                 f'VIEW_DISTANCE={view_distance}',
@@ -234,7 +234,6 @@ class Minecraft(discord.Cog):
                 f'MAX_PLAYERS={max_players}',
                 f'DIFFICULTY={difficulty}',
                 f'MOTD={motd}',
-
             ],
             ports={'25565/tcp': (config.IP, config.PORT)},
             volumes=[f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}:/data"],
