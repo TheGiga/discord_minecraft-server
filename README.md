@@ -19,6 +19,17 @@ It is using [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecr
 You can configure most of the stuff, just change variables in `config.py` file to your desired ones.
 There is more info on what's what in the file.
 
+## Setting up:
+1. Clone this repository by running `git clone https://github.com/TheGiga/discord_minecraft-server`
+2. Create `.env` file and put your bot token here *(see .env.example)*
+- See how to create the bot, get its token and invite to your server [here](https://guide.pycord.dev/getting-started/creating-your-first-bot)
+3. Set up an HTTP server *(Optional, see [here](https://github.com/TheGiga/discord_minecraft-server#http-server))*
+4. Configure `config.py`, you may need to change some settings. *(see [here](https://github.com/TheGiga/discord_minecraft-server#configurable))*
+5. Install requirements by running `pip3 install -r requirements.txt`
+6. Run the bot using `python3 main.py`
+7. Start your server by running `/start` 
+
+
 ### HTTP Server
 You need an HTTP server *(python http.server, or any other to your desire, bot just puts `.zip` files to specific path)* to download world(s) from server, because discord sucks and can't give enough file size for bigger wordls.
 
@@ -28,7 +39,7 @@ You can set up one by running:
 
 > Default directory is `/home/$USER/Public` (Linux) or `C:/Users/$USER/Public` (Windows). 
 
-### Report any errors!
+## Report any errors!
 Make an Issue on GitHub if you are having trouble setting up/running bot.
 
 *Bot was tested on 3 machines: 2 PC's and a Contabo server*
