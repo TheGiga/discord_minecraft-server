@@ -1,9 +1,12 @@
 from enum import Enum
+from typing import Union
 
 
 # If you want to use specific java version, change these:
 class Java8Flag:
     java_version = 'java8-jdk'
+
+
 class Java17Flag:
     java_version = 'java17-jdk'
 
@@ -36,3 +39,13 @@ class Versions(Enum):
     V1_9_4 = Version("1.9.4", Java8Flag)
     V1_8_9 = Version("1.8.9", Java8Flag)
     V1_7_10 = Version("1.7.10", Java8Flag)
+
+    @classmethod
+    def get_by_version(cls, version: str) -> Union['Versions', None]:
+        for x in cls:
+            if x.value.name == version:
+                return x
+            else:
+                continue
+
+        return None

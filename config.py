@@ -7,7 +7,7 @@ from src import Versions
 CONSOLE_PREFIX = "$"  # Use this prefix + minecraft command in the channel where you started server
 # to send commands to server console
 IP = "127.0.0.1"  # Change this to your global ip, if you want to make server accessible to everyone
-PORT = "25565"  # The port of the server
+# NOTE: port is changed in the preset configuration!
 
 # Users from this list will be able to use bot commands and send minecraft server commands to console.
 WHITELIST: list[int] = [352062534469156864, 330731335394000900, 373831081838772224]
@@ -18,7 +18,7 @@ else:
     HOME_PATH = os.getenv("HOME")
 
 VERSIONS = Versions
-COGS = ['basic', 'minecraft']
+COGS = ['basic', 'minecraft', 'preset']
 SERVER_TYPES = ['VANILLA', 'SPIGOT', 'PAPER']
 DIMENSIONS = ['world', 'world_nether', 'world_the_end']
 
@@ -46,4 +46,16 @@ ESCAPED_CHARACTERS: dict = {  # Used to prevent people from escaping from minecr
     ")": r"\)",
     "'": r"\'",
     "\"": r"\"",
+}
+
+DEFAULT_PRESET_CONFIG = {
+    "PVP": "true",
+    "MODE": "survival",
+    "VIEW_DISTANCE": "10",
+    "SPAWN_PROTECTION": "16",
+    "HARDCORE": "false",
+    "ENABLE_COMMAND_BLOCK": "true",
+    "MAX_PLAYERS": "20",
+    "DIFFICULTY": "easy",
+    "MOTD": "This server is running via Discord Bot :)",
 }

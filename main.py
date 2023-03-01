@@ -3,18 +3,19 @@ import asyncio
 import requests
 import discord
 from dotenv import load_dotenv
+from tortoise import connections
 
 load_dotenv()
 
 import config
-from src import bot_instance, docker_client
+from src import bot_instance, docker_client, db_init
 
 
 # from src import db_init
 
 
 async def main():
-    # await db_init()
+    await db_init()
     await bot_instance.start(os.getenv("TOKEN"))
 
 
@@ -50,6 +51,6 @@ if __name__ == "__main__":
 
         docker_client.containers.prune()
         docker_client.volumes.prune()
-        # event_loop.run_until_complete(connections.close_all(discard=True))
+        event_loop.run_until_complete(connections.close_all(discard=True))
         event_loop.stop()
         print("✅ Done!")
