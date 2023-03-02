@@ -205,6 +205,11 @@ class Minecraft(discord.Cog):
                 f"❌ There is no preset with name `{name}`, create one by running `/preset create`", ephemeral=True
             )
 
+        if self.running:
+            return await ctx.respond(
+                '❌ Server is already running!', ephemeral=True
+            )
+
         initial_response = await ctx.respond("🔃 Starting...")
 
         await preset.run_server(logging=True, logging_channel=ctx.channel)
