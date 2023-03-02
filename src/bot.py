@@ -26,7 +26,7 @@ class SubclassedBot(discord.Bot, ABC):
         embed = discord.Embed()
         embed.colour = discord.Colour.embed_background()
         embed.title = "Server Manager Help"
-        embed.set_image(url="https://i.imgur.com/WozcNGD.png")
+        embed.set_image(url="https://i.imgur.com/VWgQrOU.png")
 
         raw_commands = self.commands.copy()
 
@@ -42,6 +42,8 @@ class SubclassedBot(discord.Bot, ABC):
             ordinary_commands += f'{slash.mention} » {slash.description}\n'
             raw_commands.remove(slash)
 
+        embed.description = ordinary_commands
+
         group_embeds = []
 
         for group in [
@@ -52,7 +54,7 @@ class SubclassedBot(discord.Bot, ABC):
             group_embed = discord.Embed()
             group_embed.colour = discord.Colour.embed_background()
             group_embed.title = f'/{group.name}'
-            group_embed.set_image(url="https://i.imgur.com/WozcNGD.png")
+            group_embed.set_image(url="https://i.imgur.com/VWgQrOU.png")
 
             group_commands = list(group.walk_commands())
             description = ''

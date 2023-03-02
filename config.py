@@ -18,7 +18,7 @@ else:
     HOME_PATH = os.getenv("HOME")
 
 VERSIONS = Versions
-COGS = ['basic', 'minecraft', 'preset']
+COGS = ['basic', 'minecraft', 'presets']
 SERVER_TYPES = ['VANILLA', 'SPIGOT', 'PAPER']
 DIMENSIONS = ['world', 'world_nether', 'world_the_end']
 
@@ -27,6 +27,8 @@ HTTP_SERVER_PATH: str = f'{HOME_PATH}/Public'.replace("\\", "/")
 # IP and PORT to your HTTP server, used just to access it, not set it up.
 HTTP_SERVER_IP: str = IP
 HTTP_SERVER_PORT: str = '6969'
+
+LOG_AVATAR: str = "https://i.imgur.com/MNySemM.png"
 
 # Path to the directory where you would like to store server files.
 DOCKER_VOLUME_PATH: str = f'{HOME_PATH}/Docker/Minecraft'.replace("\\", "/")

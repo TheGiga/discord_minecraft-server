@@ -1,3 +1,5 @@
+import re
+
 import discord
 from tortoise.exceptions import IntegrityError
 from discord import SlashCommandGroup
@@ -31,6 +33,13 @@ class Presets(discord.Cog):
             server_type: discord.Option(str, choices=config.SERVER_TYPES)
     ):
         name = name.lower()
+        match = re.match("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$", name)
+
+        if not match:
+            return await ctx.respond(
+                "❌ Inappropriate name, it should match following pattern `[a-zA-Z0-9][a-zA-Z0-9_.-]`"
+            )
+
         version = VersionsEnum[version]
 
         try:
@@ -109,15 +118,30 @@ class Presets(discord.Cog):
         preset.properties = properties
         await preset.save()
 
-        content = ''
-
-        for value in changed_values:
-            content += f'`{value.upper()}`, '
+        content = ''.join(f"`{x.upper()}` " for x in changed_values)
 
         await ctx.respond(
-            content=f'**Changed values:** {content[:-2]} ({len(changed_values)})',  # Removing last 2 characters - ', '
+            content=f'**Changed values:** {content} ({len(changed_values)})',  # Removing last 2 characters - ', '
             embed=PresetEmbed(preset)
         )
+
+    @preset.command(name='delete', description='Delete configuration preset.')
+    async def preset_delete(
+            self, ctx: discord.ApplicationContext,
+            preset_name: discord.Option(
+                str, name='name', max_length=20,
+                description="Name of the preset you want to delete.", autocomplete=names, min_length=1
+            )
+    ):
+        preset_name = preset_name.lower()
+
+        preset = await Preset.get_or_none(name=preset_name)
+
+        if not preset:
+            return await ctx.respond(f"❌ There is no preset with name `{preset_name}`", ephemeral=True)
+
+        await preset.delete()
+        await ctx.respond(f'✅ Successfully deleted preset `{preset.name}`.')
 
 
 def setup(bot):

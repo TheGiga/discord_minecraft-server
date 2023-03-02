@@ -12,9 +12,9 @@ from discord import SlashCommandGroup
 from discord.ext.commands import cooldown, BucketType
 
 import config
-from src import docker_client, SubclassedBot, utils, Versions, async_wrap_iter
+from src import SubclassedBot, utils
 from src.models import Preset
-from .preset import names
+from .presets import names
 
 versions = [
     discord.OptionChoice(x.value.name, x.name)
@@ -26,20 +26,11 @@ class Minecraft(discord.Cog):
     def __init__(self, bot):
         self.bot: SubclassedBot = bot
         self.running = False
+        self.preset = None
         self.container = None
         self.console_channel = None
 
     world = SlashCommandGroup(name='world', description="Commands to work with server world(s)")
-
-    async def shutdown_logic(self):
-        await asyncio.sleep(10)
-        self.container.stop()
-        docker_client.containers.prune()
-        docker_client.volumes.prune()
-
-        self.container = None
-        self.console_channel = None
-        self.running = False
 
     @discord.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -52,16 +43,20 @@ class Minecraft(discord.Cog):
         cmd = message.content.removeprefix(config.CONSOLE_PREFIX).strip()
         cmd = cmd.translate(cmd.maketrans(config.ESCAPED_CHARACTERS))
 
-        print(f'{config.CONSOLE_PREFIX} {cmd} - {message.author} [{message.author.id}]')
+        print(f'{config.CONSOLE_PREFIX} {cmd}  ({message.author} [{message.author.id}])')
         response = self.container.exec_run(["mc-send-to-console", f"{cmd}"])
 
         pretty_response = response.output.decode("utf-8")
         await message.reply(f'Response: `{pretty_response if len(pretty_response) > 0 else "✅"}`')
 
-        if cmd == "stop":
-            await self.shutdown_logic()
+        if cmd == "stop" and self.running:
+            await self.preset.shutdown_logic()
+            self.running = False
+            self.preset = None
+            self.container = None
+            self.console_channel = None
 
-    @cooldown(1, 15, BucketType.user)
+    @cooldown(1, 10, BucketType.default)
     @world.command(name='download', description='Download server world(s).')
     async def download_world(
             self, ctx: discord.ApplicationContext,
@@ -183,21 +178,25 @@ class Minecraft(discord.Cog):
         shutil.rmtree(temp_dir)
         os.remove(archive_path)
 
+    @cooldown(1, 10, BucketType.default)
     @discord.slash_command(name='force-stop', description='Force stop the server. (❌ Data can be lost!)')
     async def force_stop(self, ctx: discord.ApplicationContext):
         await ctx.defer()
-        await self.shutdown_logic()
+        await self.preset.shutdown_logic()
+
+        self.running = False
+        self.preset = None
+        self.container = None
+        self.console_channel = None
+
         await ctx.respond("✅ Force-stopped the server.")
 
+    @cooldown(1, 10, BucketType.default)
     @discord.slash_command(name='start', description='Start minecraft server. (Only one at the time)')
     async def start_server(
             self, ctx: discord.ApplicationContext,
             preset: discord.Option(str, autocomplete=names, description="Name of the preset to use."),
-            regenerate: discord.Option(bool, default=False, description='❌ All server data will be deleted!')
     ):
-        if self.running:
-            return await ctx.respond('❌ Already running!', ephemeral=True)
-
         name = preset.lower()
         preset = await Preset.get_or_none(name=name)
 
@@ -206,67 +205,18 @@ class Minecraft(discord.Cog):
                 f"❌ There is no preset with name `{name}`, create one by running `/preset create`", ephemeral=True
             )
 
-        version = preset.version
-        java_version = Versions.get_by_version(version).value.flag.java_version
+        initial_response = await ctx.respond("🔃 Starting...")
 
-        if java_version is None:
-            raise Exception("This version is not declared in the versions enum! Please fix.")
-
-        java_memory = round(preset.memory * 0.75)
-        initial_response = await ctx.respond('☑ Starting...')
-
-        if regenerate:
-            await initial_response.edit_original_response(content="ℹ Regenerating...")
-            docker_client.volumes.prune()
-            os.system(f"rm -rf {self.bot.config.DOCKER_VOLUME_PATH}/{preset.name}/")
-
-        env = [
-            "EULA=true",
-            f"VERSION={version}",
-            f'MEMORY={java_memory}M',
-            f'TYPE={preset.server_type}'
-        ]
-
-        for var in preset.properties:
-            if var == "MOTD":
-                env.append(f'{var}="{preset.properties[var]}"')
-                continue
-
-            env.append(f'{var}={preset.properties[var]}')
-
-        container = docker_client.containers.run(
-            image=f'itzg/minecraft-server:{java_version}',
-            name=preset.name,
-            environment=env,
-            ports={f'{preset.port}/tcp': (config.IP, str(preset.port))},
-            volumes=[f"{self.bot.config.DOCKER_VOLUME_PATH}/{version}:/data"],
-            mem_limit=f'{preset.memory}m',
-            detach=True
-        )
+        await preset.run_server(logging=True, logging_channel=ctx.channel)
 
         self.running = True
-        self.container = container
+        self.preset = preset
+        self.container = preset.container
         self.console_channel = ctx.channel.id
 
-        initial_response = await initial_response.edit_original_response(
+        await initial_response.edit_original_response(
             content=f'✅ **Running...** (Type in `{config.CONSOLE_PREFIX}<command>` to send commands to console)'
         )
-
-        log_generator = async_wrap_iter(container.logs(stream=True))
-
-        async for log in log_generator:
-            log = log.decode('utf-8').rstrip("\n")
-
-            print(fr'{log}')
-
-            # TODO: Make a log queue for Discord.
-
-            try:
-                await initial_response.channel.send(f'```md\n{log}```')
-            except discord.HTTPException:
-                await initial_response.channel.send(f'``` * This log cannot be displayed on Discord *```')
-
-            await asyncio.sleep(0.25)  # Slightly defers next log
 
 
 def setup(bot):
