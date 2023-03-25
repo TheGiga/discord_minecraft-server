@@ -58,4 +58,4 @@ worlds.zip
 ## Report any errors!
 Make an Issue on GitHub if you are having trouble setting up/running bot.
 
-*Bot was tested on 3 machines: 2 PC's and a Contabo server*
+*Bot was tested on 3 machines: 2 Windows PC's and a Linux server*
