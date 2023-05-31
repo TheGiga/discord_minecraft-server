@@ -1,3 +1,6 @@
+## ⚠️ This bot will be slightly rewritten SOON™️ using `aiodocker` instead of blocking `docker-py`
+Which was used due to project scope, but since it is public now, refactor will be made.
+
 # Minecraft Server Manager Bot
 Discord bot that lets you run dockerized minecraft servers.
 *NOTE: You must host it yourself, for now at least.*
@@ -55,4 +58,4 @@ worlds.zip
 ## Report any errors!
 Make an Issue on GitHub if you are having trouble setting up/running bot.
 
-*Bot was tested on 3 machines: 2 PC's and a Contabo server*
+*Bot was tested on 3 machines: 2 Windows PC's and a Linux server*
