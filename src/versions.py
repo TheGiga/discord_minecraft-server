@@ -24,6 +24,7 @@ class Version:
 
 
 class Versions(Enum):
+    V1_19_4 = Version("1.19.4", Java17Flag)
     V1_19_3 = Version("1.19.3", Java17Flag)
     V1_19_2 = Version("1.19.2", Java17Flag)
     V1_18_2 = Version("1.18.2", Java17Flag)
