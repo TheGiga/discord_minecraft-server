@@ -126,12 +126,9 @@ class Preset(Model):
         self.container = container
 
         if logging:
-            async with aiohttp.ClientSession() as session:
-                avatar = await session.get(url=config.LOG_AVATAR)
-                avatar = await avatar.read()
-                webhook = await logging_channel.create_webhook(name=f'{self.name} Logs', avatar=avatar)
+            webhook = await logging_channel.create_webhook(name=f'{self.name} Logs')
 
-                self.webhook = webhook
+            self.webhook = webhook
 
             await self.start_logging()
 

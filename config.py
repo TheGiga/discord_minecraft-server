@@ -28,7 +28,7 @@ HTTP_SERVER_PATH: str = f'{HOME_PATH}/Public'.replace("\\", "/")
 HTTP_SERVER_IP: str = IP
 HTTP_SERVER_PORT: str = '6969'
 
-LOG_AVATAR: str = "https://i.imgur.com/MNySemM.png"
+# LOG_AVATAR: str = "" # unused
 
 # Path to the directory where you would like to store server files.
 DOCKER_VOLUME_PATH: str = f'{HOME_PATH}/Docker/Minecraft'.replace("\\", "/")
