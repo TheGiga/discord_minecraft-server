@@ -1,5 +1,4 @@
-## ⚠️ This bot will be slightly rewritten SOON™️ using `aiodocker` instead of blocking `docker-py`
-Which was used due to project scope, but since it is public now, refactor will be made.
+## ⚠️ This bot has a lot of problems such as not using "aiodocker", so you should not excpect further devlopment, i am lazy.
 
 # Minecraft Server Manager Bot
 Discord bot that lets you run dockerized minecraft servers.
